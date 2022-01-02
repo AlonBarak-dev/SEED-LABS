@@ -4,25 +4,37 @@
 #include "headers.h"
 
 void got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet){
-    ethheader *eth = (ethheader *)packet;
+  ethheader *eth = (ethheader *)packet;
 
-    if (ntohs(eth->ether_type) == 0x0800) { 
-        ipheader * ip = (ipheader *)(packet + sizeof(ethheader)); 
-        printf("Captured Packet: \n");
-        printf("Source: %s   \n", inet_ntoa(ip->iph_sourceip));  
-        printf("Destination: %s\n", inet_ntoa(ip->iph_destip));   
+  if (ntohs(eth->ether_type) == 0x0800) { 
+    ipheader * ip = (ipheader *)(packet + sizeof(ethheader)); 
+    
+
+    // print the type of the protocol only if it is ICMP
+    if (ip->iph_protocol == IPPROTO_ICMP)
+    {
+        printf("Packet capture:     ");
+        printf("Source: %s   ", inet_ntoa(ip->iph_sourceip));  
+        printf("Destination: %s", inet_ntoa(ip->iph_destip));
+        printf(" , Protocol: ICMP\n");
+        return;
     }
+    else{
+        return;
+    }
+  }
 }
 
 int main() {
+
   pcap_t *handle;
   char error_buffer[PCAP_ERRBUF_SIZE];
   struct bpf_program bpf;
-  char filter[] = "ip proto icmp";
+  char filter[] = "ip proto icmp and host 10.0.2.4 and host 8.8.8.8";
   bpf_u_int32 net;
 
   // Step 1: Open live pcap session on NIC with name enp0s3
-  handle = pcap_open_live("enp0s3", BUFSIZ, 0, 1000, error_buffer); 
+  handle = pcap_open_live("enp0s3", BUFSIZ, 1, 1000, error_buffer); 
 
   // Step 2: Compile filter into BPF psuedo-code
   pcap_compile(handle, &bpf, filter, 0, net);              
